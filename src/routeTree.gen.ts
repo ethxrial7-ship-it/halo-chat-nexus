@@ -10,33 +10,122 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedChannelsServerIdIndexRouteImport } from './routes/_authenticated/channels.$serverId.index'
+import { Route as AuthenticatedChannelsServerIdChannelIdRouteImport } from './routes/_authenticated/channels.$serverId.$channelId'
+import { Route as AuthenticatedChannelsMeIndexRouteImport } from './routes/_authenticated/channels.me.index'
+import { Route as AuthenticatedChannelsMeConversationIdRouteImport } from './routes/_authenticated/channels.me.$conversationId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedChannelsServerIdIndexRoute =
+  AuthenticatedChannelsServerIdIndexRouteImport.update({
+    id: '/channels/$serverId/',
+    path: '/channels/$serverId/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedChannelsServerIdChannelIdRoute =
+  AuthenticatedChannelsServerIdChannelIdRouteImport.update({
+    id: '/channels/$serverId/$channelId',
+    path: '/channels/$serverId/$channelId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedChannelsMeIndexRoute =
+  AuthenticatedChannelsMeIndexRouteImport.update({
+    id: '/channels/me/',
+    path: '/channels/me/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedChannelsMeConversationIdRoute =
+  AuthenticatedChannelsMeConversationIdRouteImport.update({
+    id: '/channels/me/$conversationId',
+    path: '/channels/me/$conversationId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/channels/$serverId/$channelId': typeof AuthenticatedChannelsServerIdChannelIdRoute
+  '/channels/me/$conversationId': typeof AuthenticatedChannelsMeConversationIdRoute
+  '/channels/$serverId/': typeof AuthenticatedChannelsServerIdIndexRoute
+  '/channels/me/': typeof AuthenticatedChannelsMeIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/channels/$serverId/$channelId': typeof AuthenticatedChannelsServerIdChannelIdRoute
+  '/channels/me/$conversationId': typeof AuthenticatedChannelsMeConversationIdRoute
+  '/channels/$serverId': typeof AuthenticatedChannelsServerIdIndexRoute
+  '/channels/me': typeof AuthenticatedChannelsMeIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/channels/$serverId/$channelId': typeof AuthenticatedChannelsServerIdChannelIdRoute
+  '/_authenticated/channels/me/$conversationId': typeof AuthenticatedChannelsMeConversationIdRoute
+  '/_authenticated/channels/$serverId/': typeof AuthenticatedChannelsServerIdIndexRoute
+  '/_authenticated/channels/me/': typeof AuthenticatedChannelsMeIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/settings'
+    | '/channels/$serverId/$channelId'
+    | '/channels/me/$conversationId'
+    | '/channels/$serverId/'
+    | '/channels/me/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/settings'
+    | '/channels/$serverId/$channelId'
+    | '/channels/me/$conversationId'
+    | '/channels/$serverId'
+    | '/channels/me'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/settings'
+    | '/_authenticated/channels/$serverId/$channelId'
+    | '/_authenticated/channels/me/$conversationId'
+    | '/_authenticated/channels/$serverId/'
+    | '/_authenticated/channels/me/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +137,85 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/channels/$serverId/': {
+      id: '/_authenticated/channels/$serverId/'
+      path: '/channels/$serverId'
+      fullPath: '/channels/$serverId/'
+      preLoaderRoute: typeof AuthenticatedChannelsServerIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/channels/$serverId/$channelId': {
+      id: '/_authenticated/channels/$serverId/$channelId'
+      path: '/channels/$serverId/$channelId'
+      fullPath: '/channels/$serverId/$channelId'
+      preLoaderRoute: typeof AuthenticatedChannelsServerIdChannelIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/channels/me/': {
+      id: '/_authenticated/channels/me/'
+      path: '/channels/me'
+      fullPath: '/channels/me/'
+      preLoaderRoute: typeof AuthenticatedChannelsMeIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/channels/me/$conversationId': {
+      id: '/_authenticated/channels/me/$conversationId'
+      path: '/channels/me/$conversationId'
+      fullPath: '/channels/me/$conversationId'
+      preLoaderRoute: typeof AuthenticatedChannelsMeConversationIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedChannelsServerIdChannelIdRoute: typeof AuthenticatedChannelsServerIdChannelIdRoute
+  AuthenticatedChannelsMeConversationIdRoute: typeof AuthenticatedChannelsMeConversationIdRoute
+  AuthenticatedChannelsServerIdIndexRoute: typeof AuthenticatedChannelsServerIdIndexRoute
+  AuthenticatedChannelsMeIndexRoute: typeof AuthenticatedChannelsMeIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedChannelsServerIdChannelIdRoute:
+    AuthenticatedChannelsServerIdChannelIdRoute,
+  AuthenticatedChannelsMeConversationIdRoute:
+    AuthenticatedChannelsMeConversationIdRoute,
+  AuthenticatedChannelsServerIdIndexRoute:
+    AuthenticatedChannelsServerIdIndexRoute,
+  AuthenticatedChannelsMeIndexRoute: AuthenticatedChannelsMeIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
