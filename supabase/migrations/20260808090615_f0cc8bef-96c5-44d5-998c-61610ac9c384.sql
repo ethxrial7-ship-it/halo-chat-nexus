@@ -1,0 +1,1 @@
+CREATE POLICY "servers_select_owner" ON public.servers FOR SELECT TO authenticated USING (owner_id = auth.uid());
