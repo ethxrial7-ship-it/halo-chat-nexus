@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Hash, Plus, Users } from "lucide-react";
+import { Copy, Hash, Plus, Users } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { CreateChannelDialog, NewChatDialog } from "@/components/chat/dialogs";
 import { UserAvatar } from "@/components/chat/UserAvatar";
@@ -12,10 +13,12 @@ import {
   fetchConversations,
   fetchMyServers,
   fetchServerMembers,
+  inviteLink,
   qk,
   type Conversation,
 } from "@/lib/chat";
 import { cn } from "@/lib/utils";
+
 
 function SectionHeader({ label, action }: { label: string; action?: React.ReactNode }) {
   return (
