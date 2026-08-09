@@ -37,11 +37,23 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const goAfterAuth = () => {
+    const code = typeof window === "undefined" ? null : sessionStorage.getItem("halo:pending-invite");
+    if (code) {
+      sessionStorage.removeItem("halo:pending-invite");
+      navigate({ to: "/invite/$code", params: { code }, replace: true });
+      return;
+    }
+    navigate({ to: "/channels/me", replace: true });
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/channels/me", replace: true });
+      if (data.session) goAfterAuth();
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
+
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
