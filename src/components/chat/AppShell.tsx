@@ -128,18 +128,37 @@ export function UserPanel() {
   );
 }
 
-export function AppShell({ sidebar, children }: { sidebar: ReactNode; children: ReactNode }) {
+export function AppShell({
+  sidebar,
+  children,
+  mobileView = "sidebar",
+}: {
+  sidebar: ReactNode;
+  children: ReactNode;
+  mobileView?: "sidebar" | "content";
+}) {
   const { data: session } = useSession();
   const userId = session?.user.id;
+  const showSidebar = mobileView === "sidebar";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground">
-      {userId ? <ServerRail userId={userId} /> : null}
-      <aside className="flex w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
+    <div className="flex h-dvh overflow-hidden bg-background text-foreground">
+      {userId ? (
+        <div className={cn(showSidebar ? "flex" : "hidden md:flex")}>
+          <ServerRail userId={userId} />
+        </div>
+      ) : null}
+      <aside
+        className={cn(
+          "w-full flex-col border-r border-sidebar-border bg-sidebar md:flex md:w-60 md:shrink-0",
+          showSidebar ? "flex" : "hidden",
+        )}
+      >
         <div className="flex min-h-0 flex-1 flex-col">{sidebar}</div>
         <UserPanel />
       </aside>
-      <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+      <main className={cn("min-w-0 flex-1 flex-col md:flex", showSidebar ? "hidden" : "flex")}>{children}</main>
     </div>
   );
 }
+

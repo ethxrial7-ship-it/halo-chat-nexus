@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ChevronLeft } from "lucide-react";
 
 import { AppShell } from "@/components/chat/AppShell";
 import { ChatView } from "@/components/chat/ChatView";
@@ -26,13 +27,22 @@ function ConversationPage() {
       : undefined;
 
   return (
-    <AppShell sidebar={<DmSidebar activeId={conversationId} />}>
+    <AppShell sidebar={<DmSidebar activeId={conversationId} />} mobileView="content">
       <ChatView
         kind="conversation"
         targetId={conversationId}
         title={title}
         {...(subtitle ? { subtitle } : {})}
         placeholder={`Message ${title}`}
+        backLink={
+          <Link
+            to="/channels/me"
+            aria-label="Back to messages"
+            className="-ml-1 flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Link>
+        }
       />
     </AppShell>
   );

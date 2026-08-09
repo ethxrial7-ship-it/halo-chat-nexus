@@ -108,6 +108,10 @@ export type Database = {
       }
       messages: {
         Row: {
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_size: number | null
+          attachment_type: string | null
           author_id: string
           channel_id: string | null
           content: string
@@ -117,15 +121,23 @@ export type Database = {
           id: string
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
           author_id: string
           channel_id?: string | null
-          content: string
+          content?: string
           conversation_id?: string | null
           created_at?: string
           edited_at?: string | null
           id?: string
         }
         Update: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
           author_id?: string
           channel_id?: string | null
           content?: string
@@ -262,6 +274,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_read_attachment: { Args: { _path: string }; Returns: boolean }
       channel_server: { Args: { _channel_id: string }; Returns: string }
       is_conversation_member: {
         Args: { _conversation_id: string; _user_id: string }
@@ -272,6 +285,15 @@ export type Database = {
         Returns: boolean
       }
       join_server_by_invite: { Args: { _code: string }; Returns: string }
+      server_preview_by_invite: {
+        Args: { _code: string }
+        Returns: {
+          icon_url: string
+          id: string
+          member_count: number
+          name: string
+        }[]
+      }
       server_role: {
         Args: { _server_id: string; _user_id: string }
         Returns: string

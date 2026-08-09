@@ -32,8 +32,22 @@ export type Message = {
   created_at: string;
   edited_at: string | null;
   author_id: string;
+  attachment_path: string | null;
+  attachment_name: string | null;
+  attachment_size: number | null;
+  attachment_type: string | null;
   profiles: Profile | null;
 };
+
+export type PendingAttachment = {
+  path: string;
+  name: string;
+  size: number;
+  type: string;
+};
+
+export const MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024;
+
 
 export type Conversation = {
   id: string;
@@ -120,7 +134,9 @@ export async function fetchMessages(kind: "channel" | "conversation", id: string
   const column = kind === "channel" ? "channel_id" : "conversation_id";
   const { data, error } = await supabase
     .from("messages")
-    .select(`id, content, created_at, edited_at, author_id, profiles!messages_author_profile_fkey(${PROFILE_COLS})`)
+    .select(
+      `id, content, created_at, edited_at, author_id, attachment_path, attachment_name, attachment_size, attachment_type, profiles!messages_author_profile_fkey(${PROFILE_COLS})`,
+    )
     .eq(column, id)
     .order("created_at", { ascending: true })
     .limit(300);
@@ -128,15 +144,55 @@ export async function fetchMessages(kind: "channel" | "conversation", id: string
   return (data ?? []) as unknown as Message[];
 }
 
-export async function sendMessage(kind: "channel" | "conversation", id: string, content: string, authorId: string) {
+export async function uploadAttachment(file: File, userId: string): Promise<PendingAttachment> {
+  if (file.size > MAX_ATTACHMENT_BYTES) throw new Error("Files must be 100 MB or smaller");
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120) || "file";
+  const path = `${userId}/${crypto.randomUUID()}/${safeName}`;
+  const { error } = await supabase.storage.from("attachments").upload(path, file, {
+    contentType: file.type || "application/octet-stream",
+    upsert: false,
+  });
+  if (error) throw error;
+  return { path, name: file.name, size: file.size, type: file.type || "application/octet-stream" };
+}
+
+export async function attachmentUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage.from("attachments").createSignedUrl(path, 60 * 60);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+export function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export async function sendMessage(
+  kind: "channel" | "conversation",
+  id: string,
+  content: string,
+  authorId: string,
+  attachment?: PendingAttachment | null,
+) {
   const { error } = await supabase.from("messages").insert({
     author_id: authorId,
     content,
     channel_id: kind === "channel" ? id : null,
     conversation_id: kind === "conversation" ? id : null,
+    attachment_path: attachment?.path ?? null,
+    attachment_name: attachment?.name ?? null,
+    attachment_size: attachment?.size ?? null,
+    attachment_type: attachment?.type ?? null,
   });
   if (error) throw error;
 }
+
+export function inviteLink(code: string) {
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  return `${origin}/invite/${code}`;
+}
+
 
 export async function searchProfiles(term: string, excludeId: string): Promise<Profile[]> {
   const clean = term.trim();

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ChevronLeft } from "lucide-react";
 
 import { AppShell } from "@/components/chat/AppShell";
 import { ChatView } from "@/components/chat/ChatView";
@@ -16,15 +17,26 @@ function ChannelPage() {
   const channel = channels.data?.find((c) => c.id === channelId);
 
   return (
-    <AppShell sidebar={<ServerSidebar serverId={serverId} activeChannelId={channelId} />}>
+    <AppShell sidebar={<ServerSidebar serverId={serverId} activeChannelId={channelId} />} mobileView="content">
       <ChatView
         kind="channel"
         targetId={channelId}
         title={`# ${channel?.name ?? "channel"}`}
         {...(channel?.topic ? { subtitle: channel.topic } : {})}
         placeholder={`Message #${channel?.name ?? "channel"}`}
+        backLink={
+          <Link
+            to="/channels/$serverId"
+            params={{ serverId }}
+            aria-label="Back to channels"
+            className="-ml-1 flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Link>
+        }
         aside={<MemberList serverId={serverId} />}
       />
     </AppShell>
   );
 }
+
