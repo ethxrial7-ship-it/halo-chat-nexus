@@ -144,13 +144,24 @@ export function ServerSidebar({ serverId, activeChannelId }: { serverId: string;
 
         {server ? (
           <>
-            <SectionHeader label="Invite code" />
+            <SectionHeader label="Invite link" />
             <div className="mx-2 rounded-lg bg-sidebar-accent px-3 py-2">
-              <code className="text-sm tracking-wider text-primary">{server.invite_code}</code>
-              <p className="mt-1 text-[11px] text-muted-foreground">Share this to invite friends.</p>
+              <code className="block break-all text-xs text-primary">{inviteLink(server.invite_code)}</code>
+              <button
+                type="button"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(inviteLink(server.invite_code));
+                  toast.success("Invite link copied — paste it in any chat");
+                }}
+                className="mt-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Copy invite link
+              </button>
             </div>
           </>
         ) : null}
+
       </div>
       <CreateChannelDialog open={open} onOpenChange={setOpen} serverId={serverId} />
     </div>
