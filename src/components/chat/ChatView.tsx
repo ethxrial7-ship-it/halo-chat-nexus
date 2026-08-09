@@ -1,13 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Send } from "lucide-react";
+import { Loader2, Paperclip, Send, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { AttachmentBlock, MessageText } from "@/components/chat/MessageContent";
 import { UserAvatar } from "@/components/chat/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchMessages, qk, sendMessage, type Message } from "@/lib/chat";
+import {
+  fetchMessages,
+  formatBytes,
+  MAX_ATTACHMENT_BYTES,
+  qk,
+  sendMessage,
+  uploadAttachment,
+  type Message,
+  type PendingAttachment,
+} from "@/lib/chat";
 
 function formatTime(iso: string) {
   const date = new Date(iso);
@@ -24,6 +34,7 @@ export function ChatView({
   title,
   subtitle,
   headerAction,
+  backLink,
   aside,
   placeholder,
 }: {
@@ -32,6 +43,7 @@ export function ChatView({
   title: string;
   subtitle?: string;
   headerAction?: ReactNode;
+  backLink?: ReactNode;
   aside?: ReactNode;
   placeholder?: string;
 }) {
@@ -39,6 +51,10 @@ export function ChatView({
   const userId = session?.user.id;
   const qc = useQueryClient();
   const [draft, setDraft] = useState("");
+  const [pending, setPending] = useState<PendingAttachment | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const messages = useQuery({
@@ -67,24 +83,57 @@ export function ChatView({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.data?.length]);
 
+  const handleFile = async (file: File | undefined | null) => {
+    if (!file || !userId) return;
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      toast.error(`"${file.name}" is ${formatBytes(file.size)} — the limit is 100 MB`);
+      return;
+    }
+    setUploading(true);
+    try {
+      const uploaded = await uploadAttachment(file, userId);
+      setPending(uploaded);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const send = useMutation({
     mutationFn: async () => {
       const content = draft.trim();
-      if (!content || !userId) return;
+      if ((!content && !pending) || !userId) return;
       if (content.length > 2000) throw new Error("Message is too long (2000 characters max)");
+      const attachment = pending;
       setDraft("");
-      await sendMessage(kind, targetId, content, userId);
+      setPending(null);
+      await sendMessage(kind, targetId, content, userId, attachment);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.messages(kind, targetId) }),
     onError: (e: Error) => toast.error(e.message),
   });
 
   const list = messages.data ?? [];
+  const canSend = (draft.trim().length > 0 || !!pending) && !uploading;
 
   return (
     <div className="flex min-h-0 flex-1">
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
+      <div
+        className="flex min-w-0 flex-1 flex-col"
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          void handleFile(e.dataTransfer.files?.[0]);
+        }}
+      >
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-3 md:px-4">
+          {backLink ? <div className="md:hidden">{backLink}</div> : null}
           <div className="min-w-0">
             <h1 className="truncate text-base font-semibold">{title}</h1>
             {subtitle ? <p className="truncate text-xs text-muted-foreground">{subtitle}</p> : null}
@@ -93,7 +142,7 @@ export function ChatView({
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto scroll-slim">
-          <div className="flex flex-col gap-0.5 px-4 py-4">
+          <div className="flex flex-col gap-0.5 px-2 py-4 md:px-4">
             {list.length === 0 && !messages.isLoading ? (
               <div className="py-16 text-center">
                 <p className="font-display text-xl">This is the very beginning.</p>
@@ -107,13 +156,66 @@ export function ChatView({
           </div>
         </div>
 
+        {dragging ? (
+          <div className="mx-3 mb-2 rounded-xl border border-dashed border-primary px-4 py-3 text-center text-sm text-primary md:mx-4">
+            Drop a file to attach it (up to 100 MB)
+          </div>
+        ) : null}
+
+        {pending || uploading ? (
+          <div className="mx-3 mb-2 flex items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2 md:mx-4">
+            {uploading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-sm text-muted-foreground">Uploading…</span>
+              </>
+            ) : pending ? (
+              <>
+                <Paperclip className="h-4 w-4 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm">{pending.name}</p>
+                  <p className="text-xs text-muted-foreground">{formatBytes(pending.size)}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPending(null)}
+                  aria-label="Remove attachment"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </>
+            ) : null}
+          </div>
+        ) : null}
+
         <form
-          className="flex shrink-0 items-end gap-2 px-4 pb-4"
+          className="flex shrink-0 items-end gap-2 px-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-4 md:pb-4"
           onSubmit={(e) => {
             e.preventDefault();
             send.mutate();
           }}
         >
+          <input
+            ref={fileInput}
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              void handleFile(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-11 w-11 shrink-0"
+            aria-label="Attach a file"
+            disabled={uploading}
+            onClick={() => fileInput.current?.click()}
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
           <textarea
             value={draft}
             rows={1}
@@ -128,7 +230,7 @@ export function ChatView({
             }}
             className="max-h-40 min-h-11 w-full resize-none rounded-xl border border-input bg-surface px-4 py-3 text-sm outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />
-          <Button type="submit" size="icon" className="h-11 w-11 shrink-0" disabled={!draft.trim()}>
+          <Button type="submit" size="icon" className="h-11 w-11 shrink-0" disabled={!canSend}>
             <Send className="h-4 w-4" />
           </Button>
         </form>
@@ -171,9 +273,8 @@ function MessageRow({
             <span className="text-[11px] text-muted-foreground">{formatTime(message.created_at)}</span>
           </div>
         )}
-        <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
-          {message.content}
-        </p>
+        <MessageText content={message.content} />
+        <AttachmentBlock message={message} />
       </div>
     </div>
   );

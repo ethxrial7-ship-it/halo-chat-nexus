@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as AuthenticatedChannelsServerIdIndexRouteImport } from './routes/_authenticated/channels.$serverId.index'
 import { Route as AuthenticatedChannelsServerIdChannelIdRouteImport } from './routes/_authenticated/channels.$serverId.$channelId'
 import { Route as AuthenticatedChannelsMeIndexRouteImport } from './routes/_authenticated/channels.me.index'
@@ -36,6 +37,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const InviteCodeRoute = InviteCodeRouteImport.update({
+  id: '/invite/$code',
+  path: '/invite/$code',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedChannelsServerIdIndexRoute =
   AuthenticatedChannelsServerIdIndexRouteImport.update({
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/channels/$serverId/$channelId': typeof AuthenticatedChannelsServerIdChannelIdRoute
   '/channels/me/$conversationId': typeof AuthenticatedChannelsMeConversationIdRoute
   '/channels/$serverId/': typeof AuthenticatedChannelsServerIdIndexRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/channels/$serverId/$channelId': typeof AuthenticatedChannelsServerIdChannelIdRoute
   '/channels/me/$conversationId': typeof AuthenticatedChannelsMeConversationIdRoute
   '/channels/$serverId': typeof AuthenticatedChannelsServerIdIndexRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/_authenticated/channels/$serverId/$channelId': typeof AuthenticatedChannelsServerIdChannelIdRoute
   '/_authenticated/channels/me/$conversationId': typeof AuthenticatedChannelsMeConversationIdRoute
   '/_authenticated/channels/$serverId/': typeof AuthenticatedChannelsServerIdIndexRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/settings'
+    | '/invite/$code'
     | '/channels/$serverId/$channelId'
     | '/channels/me/$conversationId'
     | '/channels/$serverId/'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/settings'
+    | '/invite/$code'
     | '/channels/$serverId/$channelId'
     | '/channels/me/$conversationId'
     | '/channels/$serverId'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/settings'
+    | '/invite/$code'
     | '/_authenticated/channels/$serverId/$channelId'
     | '/_authenticated/channels/me/$conversationId'
     | '/_authenticated/channels/$serverId/'
@@ -126,6 +138,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  InviteCodeRoute: typeof InviteCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -157,6 +170,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/invite/$code': {
+      id: '/invite/$code'
+      path: '/invite/$code'
+      fullPath: '/invite/$code'
+      preLoaderRoute: typeof InviteCodeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/channels/$serverId/': {
       id: '/_authenticated/channels/$serverId/'
@@ -215,17 +235,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  InviteCodeRoute: InviteCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
