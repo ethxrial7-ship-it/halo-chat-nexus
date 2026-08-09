@@ -81,10 +81,11 @@ function AuthPage() {
       await qc.invalidateQueries();
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        navigate({ to: "/channels/me", replace: true });
+        goAfterAuth();
       } else {
         toast.success("Check your email to confirm your account.");
       }
+
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Something went wrong");
     } finally {
