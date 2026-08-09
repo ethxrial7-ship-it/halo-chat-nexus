@@ -32,8 +32,22 @@ export type Message = {
   created_at: string;
   edited_at: string | null;
   author_id: string;
+  attachment_path: string | null;
+  attachment_name: string | null;
+  attachment_size: number | null;
+  attachment_type: string | null;
   profiles: Profile | null;
 };
+
+export type PendingAttachment = {
+  path: string;
+  name: string;
+  size: number;
+  type: string;
+};
+
+export const MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024;
+
 
 export type Conversation = {
   id: string;
