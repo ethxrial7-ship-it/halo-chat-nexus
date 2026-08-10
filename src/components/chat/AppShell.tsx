@@ -150,7 +150,7 @@ export function AppShell({
       ) : null}
       <aside
         className={cn(
-          "w-full flex-col border-r border-sidebar-border bg-sidebar md:flex md:w-60 md:shrink-0",
+          "min-w-0 flex-1 flex-col border-r border-sidebar-border bg-sidebar md:flex md:w-60 md:flex-none md:shrink-0",
           showSidebar ? "flex" : "hidden",
         )}
       >

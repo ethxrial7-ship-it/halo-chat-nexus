@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Loader2, Paperclip, Send, X } from "lucide-react";
+import { Loader2, Paperclip, Phone, Send, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { AttachmentBlock, MessageText } from "@/components/chat/MessageContent";
 import { UserAvatar } from "@/components/chat/UserAvatar";
 import { Button } from "@/components/ui/button";
-import { useSession } from "@/hooks/useAuth";
+import { useCall } from "@/components/chat/CallProvider";
+import { useMyProfile, useSession } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   fetchMessages,
@@ -18,6 +19,7 @@ import {
   type Message,
   type PendingAttachment,
 } from "@/lib/chat";
+import { notifyMembers } from "@/lib/notify.functions";
 
 function formatTime(iso: string) {
   const date = new Date(iso);
@@ -37,6 +39,7 @@ export function ChatView({
   backLink,
   aside,
   placeholder,
+  callMembers,
 }: {
   kind: "channel" | "conversation";
   targetId: string;
@@ -46,8 +49,11 @@ export function ChatView({
   backLink?: ReactNode;
   aside?: ReactNode;
   placeholder?: string;
+  callMembers?: string[];
 }) {
   const { data: session } = useSession();
+  const { data: myProfile } = useMyProfile();
+  const call = useCall();
   const userId = session?.user.id;
   const qc = useQueryClient();
   const [draft, setDraft] = useState("");
@@ -109,6 +115,21 @@ export function ChatView({
       setDraft("");
       setPending(null);
       await sendMessage(kind, targetId, content, userId, attachment);
+      const senderName = myProfile?.display_name || myProfile?.username || "Someone";
+      try {
+        await notifyMembers({
+          data: {
+            kind: kind === "channel" ? "channel" : "conversation",
+            targetId,
+            title: kind === "channel" ? `${senderName} in ${title}` : senderName,
+            body: content || (attachment ? `Sent ${attachment.name}` : "New message"),
+            url: window.location.pathname,
+            tag: `${kind}-${targetId}`,
+          },
+        });
+      } catch {
+        /* notifications are best effort */
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.messages(kind, targetId) }),
     onError: (e: Error) => toast.error(e.message),
@@ -138,7 +159,21 @@ export function ChatView({
             <h1 className="truncate text-base font-semibold">{title}</h1>
             {subtitle ? <p className="truncate text-xs text-muted-foreground">{subtitle}</p> : null}
           </div>
-          <div className="ml-auto">{headerAction}</div>
+          <div className="ml-auto flex items-center gap-1">
+            {kind === "conversation" && callMembers ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={call.inCall(targetId) ? "You are in this call" : "Start a voice call"}
+                disabled={call.inCall(targetId)}
+                onClick={() => void call.startCall(targetId, title, callMembers)}
+              >
+                <Phone className="h-4 w-4" />
+              </Button>
+            ) : null}
+            {headerAction}
+          </div>
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto scroll-slim">
