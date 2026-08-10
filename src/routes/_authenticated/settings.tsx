@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { NotificationSettings } from "@/components/chat/NotificationSettings";
 import { UserAvatar } from "@/components/chat/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -193,6 +194,8 @@ function SettingsPage() {
             </Button>
           </div>
         </div>
+
+        <NotificationSettings />
       </div>
     </div>
   );

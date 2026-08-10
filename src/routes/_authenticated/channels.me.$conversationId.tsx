@@ -34,6 +34,7 @@ function ConversationPage() {
         title={title}
         {...(subtitle ? { subtitle } : {})}
         placeholder={`Message ${title}`}
+        callMembers={conversation?.members.map((m) => m.id) ?? []}
         backLink={
           <Link
             to="/channels/me"
