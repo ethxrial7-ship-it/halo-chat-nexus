@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Copy, Hash, Plus, Users } from "lucide-react";
+import { ChevronLeft, Copy, Hash, Plus, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -112,7 +112,14 @@ export function ServerSidebar({ serverId, activeChannelId }: { serverId: string;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex h-14 shrink-0 items-center border-b border-sidebar-border px-4">
+      <div className="flex h-14 shrink-0 items-center gap-1 border-b border-sidebar-border px-2 md:px-4">
+        <Link
+          to="/channels/me"
+          aria-label="Back to direct messages"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground md:hidden"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Link>
         <span className="truncate font-display text-base font-semibold">{server?.name ?? "Server"}</span>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto scroll-slim pb-3">
