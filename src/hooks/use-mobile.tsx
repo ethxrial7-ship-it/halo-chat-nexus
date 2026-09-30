@@ -2,7 +2,7 @@ import * as React from "react";
 
 const MOBILE_BREAKPOINT = 768;
 
-export function useIsMobile() {
+export function useMobileViewport() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
 
   React.useEffect(() => {
@@ -15,5 +15,11 @@ export function useIsMobile() {
     return () => mql.removeEventListener("change", onChange);
   }, []);
 
-  return !!isMobile;
+  // Keep the viewport unknown until hydration has measured it. Treating it as
+  // desktop during the first render can trigger a desktop-only redirect on phones.
+  return isMobile;
+}
+
+export function useIsMobile() {
+  return !!useMobileViewport();
 }

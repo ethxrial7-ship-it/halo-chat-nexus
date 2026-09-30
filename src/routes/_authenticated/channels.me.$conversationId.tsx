@@ -9,6 +9,14 @@ import { useSession } from "@/hooks/useAuth";
 import { conversationTitle, fetchConversations, qk } from "@/lib/chat";
 
 export const Route = createFileRoute("/_authenticated/channels/me/$conversationId")({
+  head: () => ({ meta: [
+    { title: "Conversation — Halo's Messages" },
+    { name: "description", content: "Chat privately with friends on Halo's Messages." },
+    { property: "og:title", content: "Conversation — Halo's Messages" },
+    { property: "og:description", content: "Chat privately with friends on Halo's Messages." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ConversationPage,
 });
 

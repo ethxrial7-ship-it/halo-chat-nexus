@@ -4,6 +4,14 @@ import { AppShell } from "@/components/chat/AppShell";
 import { DmSidebar } from "@/components/chat/sidebars";
 
 export const Route = createFileRoute("/_authenticated/channels/me/")({
+  head: () => ({ meta: [
+    { title: "Direct messages — Halo's Messages" },
+    { name: "description", content: "Open your private messages and group chats on Halo's Messages." },
+    { property: "og:title", content: "Direct messages — Halo's Messages" },
+    { property: "og:description", content: "Open your private messages and group chats on Halo's Messages." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: DmHome,
 });
 

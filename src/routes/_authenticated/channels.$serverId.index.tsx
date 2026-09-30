@@ -3,20 +3,28 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 import { AppShell } from "@/components/chat/AppShell";
 import { ServerSidebar } from "@/components/chat/sidebars";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobileViewport } from "@/hooks/use-mobile";
 import { fetchChannels, qk } from "@/lib/chat";
 
 export const Route = createFileRoute("/_authenticated/channels/$serverId/")({
+  head: () => ({ meta: [
+    { title: "Server channels — Halo's Messages" },
+    { name: "description", content: "Browse your community's channels on Halo's Messages." },
+    { property: "og:title", content: "Server channels — Halo's Messages" },
+    { property: "og:description", content: "Browse your community's channels on Halo's Messages." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ServerHome,
 });
 
 function ServerHome() {
   const { serverId } = Route.useParams();
-  const isMobile = useIsMobile();
+  const isMobile = useMobileViewport();
   const channels = useQuery({ queryKey: qk.channels(serverId), queryFn: () => fetchChannels(serverId) });
   const first = channels.data?.[0];
 
-  if (first && !isMobile) {
+  if (first && isMobile === false) {
     return <Navigate to="/channels/$serverId/$channelId" params={{ serverId, channelId: first.id }} replace />;
   }
 
