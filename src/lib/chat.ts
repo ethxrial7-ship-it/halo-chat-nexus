@@ -36,6 +36,7 @@ export type Message = {
   attachment_name: string | null;
   attachment_size: number | null;
   attachment_type: string | null;
+  bot_name?: string | null;
   profiles: Profile | null;
 };
 
@@ -135,7 +136,7 @@ export async function fetchMessages(kind: "channel" | "conversation", id: string
   const { data, error } = await supabase
     .from("messages")
     .select(
-      `id, content, created_at, edited_at, author_id, attachment_path, attachment_name, attachment_size, attachment_type, profiles!messages_author_profile_fkey(${PROFILE_COLS})`,
+      `id, content, created_at, edited_at, author_id, attachment_path, attachment_name, attachment_size, attachment_type, bot_name, profiles!messages_author_profile_fkey(${PROFILE_COLS})`,
     )
     .eq(column, id)
     .order("created_at", { ascending: true })
