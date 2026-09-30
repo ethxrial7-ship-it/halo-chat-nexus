@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Voice calls use the existing peer-to-peer WebRTC mesh; screen sharing is a renegotiated video track on those same peers to preserve call signaling and privacy.

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Mic, MicOff, Phone, PhoneOff } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, ScreenShare, ScreenShareOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ const ICE_SERVERS: RTCConfiguration = {
 
 type IncomingCall = { conversationId: string; title: string; fromName: string };
 type ActiveCall = { conversationId: string; title: string };
+type SharedScreen = { peerId: string; stream: MediaStream; local: boolean };
 
 type CallContextValue = {
   active: ActiveCall | null;
@@ -84,8 +85,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [active, setActive] = useState<ActiveCall | null>(null);
   const [peers, setPeers] = useState<string[]>([]);
   const [muted, setMuted] = useState(false);
+  const [sharingScreen, setSharingScreen] = useState(false);
+  const [sharedScreens, setSharedScreens] = useState<SharedScreen[]>([]);
 
   const streamRef = useRef<MediaStream | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+  const screenSendersRef = useRef(new Map<string, RTCRtpSender>());
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const pcsRef = useRef(new Map<string, RTCPeerConnection>());
   const audioRef = useRef<HTMLDivElement>(null);
@@ -125,16 +130,34 @@ export function CallProvider({ children }: { children: ReactNode }) {
     void el.play().catch(() => {});
   }, []);
 
+  const attachScreen = useCallback((peerId: string, stream: MediaStream) => {
+    setSharedScreens((current) => {
+      const withoutPeer = current.filter((screen) => screen.peerId !== peerId);
+      return [...withoutPeer, { peerId, stream, local: false }];
+    });
+    const videoTrack = stream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.onended = () => {
+        setSharedScreens((current) => current.filter((screen) => screen.peerId !== peerId));
+      };
+    }
+  }, []);
+
   const teardown = useCallback(() => {
     pcsRef.current.forEach((pc) => pc.close());
     pcsRef.current.clear();
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    screenStreamRef.current?.getTracks().forEach((track) => track.stop());
+    screenStreamRef.current = null;
+    screenSendersRef.current.clear();
     if (channelRef.current) supabase.removeChannel(channelRef.current);
     channelRef.current = null;
     if (audioRef.current) audioRef.current.innerHTML = "";
     setPeers([]);
     setMuted(false);
+    setSharingScreen(false);
+    setSharedScreens([]);
     setActive(null);
   }, []);
 
@@ -148,22 +171,33 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const ensurePeer = useCallback(
     (peerId: string, initiator: boolean) => {
-      if (pcsRef.current.has(peerId)) return pcsRef.current.get(peerId)!;
+      const existing = pcsRef.current.get(peerId);
+      if (existing) return existing;
       const pc = new RTCPeerConnection(ICE_SERVERS);
       pcsRef.current.set(peerId, pc);
-      streamRef.current?.getTracks().forEach((track) => pc.addTrack(track, streamRef.current!));
+      const localStream = streamRef.current;
+      localStream?.getTracks().forEach((track) => pc.addTrack(track, localStream));
+      const screenStream = screenStreamRef.current;
+      const screenTrack = screenStream?.getVideoTracks()[0];
+      if (screenStream && screenTrack) {
+        screenSendersRef.current.set(peerId, pc.addTrack(screenTrack, screenStream));
+      }
       pc.onicecandidate = (event) => {
         if (event.candidate) signal(peerId, "ice", event.candidate.toJSON());
       };
       pc.ontrack = (event) => {
         const stream = event.streams[0];
-        if (stream) attachAudio(peerId, stream);
+        if (!stream) return;
+        if (event.track.kind === "video") attachScreen(peerId, stream);
+        else attachAudio(peerId, stream);
       };
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "failed" || pc.connectionState === "closed") {
           pc.close();
           pcsRef.current.delete(peerId);
+          screenSendersRef.current.delete(peerId);
           setPeers((prev) => prev.filter((p) => p !== peerId));
+          setSharedScreens((current) => current.filter((screen) => screen.peerId !== peerId));
         }
       };
       if (initiator) {
@@ -176,7 +210,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       setPeers((prev) => (prev.includes(peerId) ? prev : [...prev, peerId]));
       return pc;
     },
-    [attachAudio, signal],
+    [attachAudio, attachScreen, signal],
   );
 
   const connect = useCallback(
@@ -224,7 +258,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
           const pc = pcsRef.current.get(key);
           pc?.close();
           pcsRef.current.delete(key);
+           screenSendersRef.current.delete(key);
           setPeers((prev) => prev.filter((p) => p !== key));
+           setSharedScreens((current) => current.filter((screen) => screen.peerId !== key));
           audioRef.current?.querySelector(`audio[data-peer="${key}"]`)?.remove();
         })
         .subscribe(async (status) => {
@@ -303,6 +339,65 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setMuted(next);
   }, [muted]);
 
+  const renegotiate = useCallback(
+    async (peerId: string, pc: RTCPeerConnection) => {
+      if (pc.signalingState !== "stable") return;
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        signal(peerId, "offer", offer);
+      } catch {
+        toast.error("Screen sharing could not update for one participant");
+      }
+    },
+    [signal],
+  );
+
+  const stopScreenShare = useCallback(() => {
+    const stream = screenStreamRef.current;
+    if (!stream) return;
+    stream.getTracks().forEach((track) => track.stop());
+    screenStreamRef.current = null;
+    setSharingScreen(false);
+    setSharedScreens((current) => current.filter((screen) => !screen.local));
+    pcsRef.current.forEach((pc, peerId) => {
+      const sender = screenSendersRef.current.get(peerId);
+      if (sender) pc.removeTrack(sender);
+      screenSendersRef.current.delete(peerId);
+      void renegotiate(peerId, pc);
+    });
+  }, [renegotiate]);
+
+  const toggleScreenShare = useCallback(async () => {
+    if (screenStreamRef.current) {
+      stopScreenShare();
+      return;
+    }
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      toast.error("Screen sharing is not supported by this browser");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const track = stream.getVideoTracks()[0];
+      if (!track) {
+        stream.getTracks().forEach((item) => item.stop());
+        return;
+      }
+      screenStreamRef.current = stream;
+      track.onended = stopScreenShare;
+      setSharingScreen(true);
+      setSharedScreens((current) => [...current.filter((screen) => !screen.local), { peerId: "local", stream, local: true }]);
+      pcsRef.current.forEach((pc, peerId) => {
+        screenSendersRef.current.set(peerId, pc.addTrack(track, stream));
+        void renegotiate(peerId, pc);
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "NotAllowedError") return;
+      toast.error("Screen sharing could not start");
+    }
+  }, [renegotiate, stopScreenShare]);
+
   useEffect(() => teardown, [teardown]);
 
   const value = useMemo<CallContextValue>(
@@ -318,6 +413,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
     <CallContext.Provider value={value}>
       {children}
       <div ref={audioRef} className="hidden" aria-hidden />
+
+      {active && sharedScreens.length > 0 ? (
+        <div className="fixed inset-x-3 top-3 z-40 grid max-h-[calc(100dvh-6.5rem)] gap-2 overflow-y-auto rounded-xl border border-border bg-background/95 p-2 shadow-panel md:inset-x-auto md:right-4 md:w-[min(52rem,calc(100vw-2rem))] md:grid-cols-2">
+          {sharedScreens.map((screen) => (
+            <SharedScreenVideo key={screen.peerId} screen={screen} />
+          ))}
+        </div>
+      ) : null}
 
       {incoming && !active ? (
         <div className="fixed inset-x-0 bottom-4 z-50 mx-auto w-[min(24rem,calc(100%-1.5rem))] rounded-2xl border border-border bg-surface p-4 shadow-halo animate-rise">
@@ -350,11 +453,40 @@ export function CallProvider({ children }: { children: ReactNode }) {
           <Button variant="ghost" size="icon" aria-label={muted ? "Unmute" : "Mute"} onClick={toggleMute}>
             {muted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
           </Button>
+          <Button
+            variant={sharingScreen ? "secondary" : "ghost"}
+            size="icon"
+            aria-label={sharingScreen ? "Stop sharing screen" : "Share screen"}
+            onClick={() => void toggleScreenShare()}
+          >
+            {sharingScreen ? <ScreenShareOff className="h-4 w-4" /> : <ScreenShare className="h-4 w-4" />}
+          </Button>
           <Button variant="destructive" size="icon" aria-label="Leave call" onClick={hangUp}>
             <PhoneOff className="h-4 w-4" />
           </Button>
         </div>
       ) : null}
     </CallContext.Provider>
+  );
+}
+
+function SharedScreenVideo({ screen }: { screen: SharedScreen }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.srcObject = screen.stream;
+    void video.play().catch(() => {});
+    return () => {
+      video.srcObject = null;
+    };
+  }, [screen.stream]);
+
+  return (
+    <div className="min-w-0 overflow-hidden rounded-lg bg-surface">
+      <video ref={videoRef} autoPlay playsInline muted={screen.local} className="aspect-video h-auto w-full object-contain" />
+      <p className="px-2 py-1.5 text-xs text-muted-foreground">{screen.local ? "Your screen" : "Shared screen"}</p>
+    </div>
   );
 }
