@@ -20,6 +20,7 @@ import {
   type PendingAttachment,
 } from "@/lib/chat";
 import { notifyMembers } from "@/lib/notify.functions";
+import { haloBotReply } from "@/lib/halobot.functions";
 
 function formatTime(iso: string) {
   const date = new Date(iso);
@@ -115,6 +116,11 @@ export function ChatView({
       setDraft("");
       setPending(null);
       await sendMessage(kind, targetId, content, userId, attachment);
+      if (/halo chat/i.test(content)) {
+        void haloBotReply({ data: { kind, targetId, content } })
+          .then(() => qc.invalidateQueries({ queryKey: qk.messages(kind, targetId) }))
+          .catch(() => toast.error("Halo AI couldn't reply right now"));
+      }
       const senderName = myProfile?.display_name || myProfile?.username || "Someone";
       try {
         await notifyMembers({
