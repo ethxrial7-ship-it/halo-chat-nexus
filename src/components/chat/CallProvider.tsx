@@ -140,6 +140,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
       videoTrack.onended = () => {
         setSharedScreens((current) => current.filter((screen) => screen.peerId !== peerId));
       };
+      videoTrack.onmute = () => {
+        setSharedScreens((current) => current.filter((screen) => screen.peerId !== peerId));
+      };
+      videoTrack.onunmute = () => {
+        setSharedScreens((current) => [...current.filter((screen) => screen.peerId !== peerId), { peerId, stream, local: false }]);
+      };
     }
   }, []);
 
@@ -258,9 +264,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
           const pc = pcsRef.current.get(key);
           pc?.close();
           pcsRef.current.delete(key);
-           screenSendersRef.current.delete(key);
+          screenSendersRef.current.delete(key);
           setPeers((prev) => prev.filter((p) => p !== key));
-           setSharedScreens((current) => current.filter((screen) => screen.peerId !== key));
+          setSharedScreens((current) => current.filter((screen) => screen.peerId !== key));
           audioRef.current?.querySelector(`audio[data-peer="${key}"]`)?.remove();
         })
         .subscribe(async (status) => {
@@ -341,7 +347,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const renegotiate = useCallback(
     async (peerId: string, pc: RTCPeerConnection) => {
-      if (pc.signalingState !== "stable") return;
+      if (pc.signalingState === "closed") return;
+      if (pc.signalingState !== "stable") {
+        pc.addEventListener("signalingstatechange", () => void renegotiate(peerId, pc), { once: true });
+        return;
+      }
       try {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
