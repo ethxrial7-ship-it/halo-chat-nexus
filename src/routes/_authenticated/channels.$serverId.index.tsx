@@ -3,7 +3,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 import { AppShell } from "@/components/chat/AppShell";
 import { ServerSidebar } from "@/components/chat/sidebars";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobileViewport } from "@/hooks/use-mobile";
 import { fetchChannels, qk } from "@/lib/chat";
 
 export const Route = createFileRoute("/_authenticated/channels/$serverId/")({
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_authenticated/channels/$serverId/")({
 
 function ServerHome() {
   const { serverId } = Route.useParams();
-  const isMobile = useIsMobile();
+  const isMobile = useMobileViewport();
   const channels = useQuery({ queryKey: qk.channels(serverId), queryFn: () => fetchChannels(serverId) });
   const first = channels.data?.[0];
 
