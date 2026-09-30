@@ -16,7 +16,7 @@ function ServerHome() {
   const channels = useQuery({ queryKey: qk.channels(serverId), queryFn: () => fetchChannels(serverId) });
   const first = channels.data?.[0];
 
-  if (first && !isMobile) {
+  if (first && isMobile === false) {
     return <Navigate to="/channels/$serverId/$channelId" params={{ serverId, channelId: first.id }} replace />;
   }
 

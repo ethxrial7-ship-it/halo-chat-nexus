@@ -15,5 +15,7 @@ export function useIsMobile() {
     return () => mql.removeEventListener("change", onChange);
   }, []);
 
-  return !!isMobile;
+  // Keep the viewport unknown until hydration has measured it. Treating it as
+  // desktop during the first render can trigger a desktop-only redirect on phones.
+  return isMobile;
 }
