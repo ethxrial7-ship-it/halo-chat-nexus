@@ -253,6 +253,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
             } catch {
               /* ignore late candidates */
             }
+           } else if (message.kind === "screen-stop") {
+             setSharedScreens((current) => current.filter((screen) => screen.peerId !== message.from));
           }
         })
         .on("presence", { event: "sync" }, () => {
@@ -371,12 +373,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setSharingScreen(false);
     setSharedScreens((current) => current.filter((screen) => !screen.local));
     pcsRef.current.forEach((pc, peerId) => {
+      signal(peerId, "screen-stop", null);
       const sender = screenSendersRef.current.get(peerId);
       if (sender) pc.removeTrack(sender);
       screenSendersRef.current.delete(peerId);
       void renegotiate(peerId, pc);
     });
-  }, [renegotiate]);
+  }, [renegotiate, signal]);
 
   const toggleScreenShare = useCallback(async () => {
     if (screenStreamRef.current) {
