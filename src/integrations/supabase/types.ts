@@ -113,6 +113,7 @@ export type Database = {
           attachment_size: number | null
           attachment_type: string | null
           author_id: string
+          bot_name: string | null
           channel_id: string | null
           content: string
           conversation_id: string | null
@@ -126,6 +127,7 @@ export type Database = {
           attachment_size?: number | null
           attachment_type?: string | null
           author_id: string
+          bot_name?: string | null
           channel_id?: string | null
           content?: string
           conversation_id?: string | null
@@ -139,6 +141,7 @@ export type Database = {
           attachment_size?: number | null
           attachment_type?: string | null
           author_id?: string
+          bot_name?: string | null
           channel_id?: string | null
           content?: string
           conversation_id?: string | null

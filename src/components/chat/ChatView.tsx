@@ -20,6 +20,7 @@ import {
   type PendingAttachment,
 } from "@/lib/chat";
 import { notifyMembers } from "@/lib/notify.functions";
+import { haloBotReply } from "@/lib/halobot.functions";
 
 function formatTime(iso: string) {
   const date = new Date(iso);
@@ -115,6 +116,11 @@ export function ChatView({
       setDraft("");
       setPending(null);
       await sendMessage(kind, targetId, content, userId, attachment);
+      if (/halo chat/i.test(content)) {
+        void haloBotReply({ data: { kind, targetId, content } })
+          .then(() => qc.invalidateQueries({ queryKey: qk.messages(kind, targetId) }))
+          .catch(() => toast.error("Halo AI couldn't reply right now"));
+      }
       const senderName = myProfile?.display_name || myProfile?.username || "Someone";
       try {
         await notifyMembers({
@@ -285,25 +291,33 @@ function MessageRow({
   myId?: string | undefined;
 }) {
   const grouped =
+    (previous?.bot_name ?? null) === (message.bot_name ?? null) &&
     previous?.author_id === message.author_id &&
     new Date(message.created_at).getTime() - new Date(previous.created_at).getTime() < 5 * 60 * 1000;
 
-  const name = message.profiles?.display_name || message.profiles?.username || "Unknown";
+  const bot = message.bot_name;
+  const name = bot || message.profiles?.display_name || message.profiles?.username || "Unknown";
 
   return (
     <div className={`group flex gap-3 rounded-lg px-2 hover:bg-surface/60 ${grouped ? "py-0.5" : "mt-3 py-1"}`}>
       <div className="w-9 shrink-0">
-        {grouped ? null : <UserAvatar profile={message.profiles} size={36} />}
+        {grouped ? null : bot ? (
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground halo-glow">
+            AI
+          </span>
+        ) : (
+          <UserAvatar profile={message.profiles} size={36} />
+        )}
       </div>
       <div className="min-w-0 flex-1">
         {grouped ? null : (
           <div className="flex items-baseline gap-2">
             <span
               className="text-sm font-semibold"
-              style={{ color: message.profiles?.accent_color ?? undefined }}
+              style={{ color: bot ? undefined : (message.profiles?.accent_color ?? undefined) }}
             >
               {name}
-              {message.author_id === myId ? " (you)" : ""}
+              {bot ? " · bot" : message.author_id === myId ? " (you)" : ""}
             </span>
             <span className="text-[11px] text-muted-foreground">{formatTime(message.created_at)}</span>
           </div>
