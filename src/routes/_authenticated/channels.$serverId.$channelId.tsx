@@ -8,6 +8,14 @@ import { MemberList, ServerSidebar } from "@/components/chat/sidebars";
 import { fetchChannels, qk } from "@/lib/chat";
 
 export const Route = createFileRoute("/_authenticated/channels/$serverId/$channelId")({
+  head: () => ({ meta: [
+    { title: "Server chat — Halo's Messages" },
+    { name: "description", content: "Chat in a community channel on Halo's Messages." },
+    { property: "og:title", content: "Server chat — Halo's Messages" },
+    { property: "og:description", content: "Chat in a community channel on Halo's Messages." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ChannelPage,
 });
 

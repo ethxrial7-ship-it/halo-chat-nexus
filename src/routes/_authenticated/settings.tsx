@@ -24,6 +24,14 @@ const STATUSES = [
 const COLORS = ["#f5b544", "#7c5cff", "#3ec9a7", "#ff6b6b", "#4aa8ff", "#ff8fd0", "#9ee493"];
 
 export const Route = createFileRoute("/_authenticated/settings")({
+  head: () => ({ meta: [
+    { title: "Profile settings — Halo's Messages" },
+    { name: "description", content: "Customize your profile and notification settings on Halo's Messages." },
+    { property: "og:title", content: "Profile settings — Halo's Messages" },
+    { property: "og:description", content: "Customize your profile and notification settings on Halo's Messages." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: SettingsPage,
 });
 

@@ -7,6 +7,14 @@ import { useMobileViewport } from "@/hooks/use-mobile";
 import { fetchChannels, qk } from "@/lib/chat";
 
 export const Route = createFileRoute("/_authenticated/channels/$serverId/")({
+  head: () => ({ meta: [
+    { title: "Server channels — Halo's Messages" },
+    { name: "description", content: "Browse your community's channels on Halo's Messages." },
+    { property: "og:title", content: "Server channels — Halo's Messages" },
+    { property: "og:description", content: "Browse your community's channels on Halo's Messages." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ServerHome,
 });
 
