@@ -116,6 +116,13 @@ export function UserPanel() {
         <p className="truncate text-sm font-medium">{profile?.display_name || profile?.username || "…"}</p>
         <p className="truncate text-xs text-muted-foreground">@{profile?.username ?? ""}</p>
       </div>
+      {isAdmin ? (
+        <Button asChild variant="ghost" size="icon" className="h-8 w-8" aria-label="Admin panel">
+          <Link to="/admin">
+            <ShieldCheck className="h-4 w-4" />
+          </Link>
+        </Button>
+      ) : null}
       <Button asChild variant="ghost" size="icon" className="h-8 w-8" aria-label="Profile settings">
         <Link to="/settings">
           <Settings className="h-4 w-4" />
