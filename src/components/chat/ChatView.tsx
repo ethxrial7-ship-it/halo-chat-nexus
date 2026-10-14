@@ -93,7 +93,7 @@ export function ChatView({
   const handleFile = async (file: File | undefined | null) => {
     if (!file || !userId) return;
     if (file.size > MAX_ATTACHMENT_BYTES) {
-      toast.error(`"${file.name}" is ${formatBytes(file.size)} — the limit is 100 MB`);
+      toast.error(`"${file.name}" is ${formatBytes(file.size)} — the limit is 2.5 GB`);
       return;
     }
     setUploading(true);
@@ -199,7 +199,7 @@ export function ChatView({
 
         {dragging ? (
           <div className="mx-3 mb-2 rounded-xl border border-dashed border-primary px-4 py-3 text-center text-sm text-primary md:mx-4">
-            Drop a file to attach it (up to 100 MB)
+            Drop a file to attach it (up to 2.5 GB)
           </div>
         ) : null}
 

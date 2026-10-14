@@ -47,7 +47,7 @@ export type PendingAttachment = {
   type: string;
 };
 
-export const MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024;
+export const MAX_ATTACHMENT_BYTES = 2.5 * 1024 * 1024 * 1024;
 
 
 export type Conversation = {
@@ -146,7 +146,7 @@ export async function fetchMessages(kind: "channel" | "conversation", id: string
 }
 
 export async function uploadAttachment(file: File, userId: string): Promise<PendingAttachment> {
-  if (file.size > MAX_ATTACHMENT_BYTES) throw new Error("Files must be 100 MB or smaller");
+  if (file.size > MAX_ATTACHMENT_BYTES) throw new Error("Files must be 2.5 GB or smaller");
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120) || "file";
   const path = `${userId}/${crypto.randomUUID()}/${safeName}`;
   const { error } = await supabase.storage.from("attachments").upload(path, file, {
