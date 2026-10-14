@@ -8,6 +8,13 @@
       "when": 1790772063572,
       "tag": "0000_halo_bot_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791973052258,
+      "tag": "0001_admin_roles_and_bans",
+      "breakpoints": true
     }
   ]
 }
