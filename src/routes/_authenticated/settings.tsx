@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { NotificationSettings } from "@/components/chat/NotificationSettings";
+import { ThemeSettings } from "@/components/chat/ThemeSettings";
 import { UserAvatar } from "@/components/chat/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -204,6 +205,7 @@ function SettingsPage() {
         </div>
 
         <NotificationSettings />
+        <ThemeSettings />
       </div>
     </div>
   );

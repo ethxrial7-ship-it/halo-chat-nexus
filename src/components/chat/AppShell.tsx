@@ -13,12 +13,25 @@ import { useIsAdmin, useMyBan } from "@/hooks/useModeration";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchMyServers, initials, qk } from "@/lib/chat";
 import { cn } from "@/lib/utils";
+import { getTheme, setTheme } from "@/lib/theme";
+import { useRef } from "react";
 
 function ServerRail({ userId }: { userId: string }) {
   const servers = useQuery({ queryKey: qk.servers, queryFn: fetchMyServers });
   const params = useParams({ strict: false }) as { serverId?: string };
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  const eggClicks = useRef<{ n: number; t: number }>({ n: 0, t: 0 });
+  const onDmClick = () => {
+    const now = Date.now();
+    const c = eggClicks.current;
+    c.n = now - c.t < 1500 ? c.n + 1 : 1;
+    c.t = now;
+    if (c.n >= 15) {
+      c.n = 0;
+      setTheme(getTheme() === "neon" ? "normal" : "neon", true);
+    }
+  };
 
   return (
     <TooltipProvider delayDuration={120}>
@@ -27,6 +40,7 @@ function ServerRail({ userId }: { userId: string }) {
           <TooltipTrigger asChild>
             <Link
               to="/channels/me"
+              onClick={onDmClick}
               className={cn(
                 "flex h-12 w-12 items-center justify-center rounded-2xl bg-surface text-primary transition-all hover:rounded-xl",
                 !params.serverId && "rounded-xl shadow-halo",
