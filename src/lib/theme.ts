@@ -7,6 +7,6 @@ export function getTheme(): AppTheme {
 export function setTheme(theme: AppTheme, reload = false) {
   localStorage.setItem(KEY, theme);
   if (reload) window.location.reload();
-  else document.documentElement.dataset.theme = theme;
+  else document.documentElement.dataset["theme"] = theme;
 }
 export const themeBootScript = `try{if(localStorage.getItem("${KEY}")==="neon")document.documentElement.dataset.theme="neon"}catch(e){}`;
