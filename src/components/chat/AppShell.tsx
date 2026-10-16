@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { Compass, LogOut, Plus, Settings, ShieldCheck, Sparkles } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { CreateServerDialog, JoinServerDialog } from "@/components/chat/dialogs";
 import { UserAvatar } from "@/components/chat/UserAvatar";
@@ -14,7 +14,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchMyServers, initials, qk } from "@/lib/chat";
 import { cn } from "@/lib/utils";
 import { getTheme, setTheme } from "@/lib/theme";
-import { useRef } from "react";
 
 function ServerRail({ userId }: { userId: string }) {
   const servers = useQuery({ queryKey: qk.servers, queryFn: fetchMyServers });
