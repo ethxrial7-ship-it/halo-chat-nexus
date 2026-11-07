@@ -15,6 +15,13 @@
       "when": 1791973052258,
       "tag": "0001_admin_roles_and_bans",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794075761117,
+      "tag": "0002_custom_call_sound_overrides",
+      "breakpoints": true
     }
   ]
 }

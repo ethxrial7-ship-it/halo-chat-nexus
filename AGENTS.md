@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Voice calls use the existing peer-to-peer WebRTC mesh; screen sharing is a renegotiated video track on those same peers to preserve call signaling and privacy.
+- Call sound overrides are account-scoped and writable only by database-validated admins; each browser reads its own override when ringing, and synthesized variants keep call audio local.
