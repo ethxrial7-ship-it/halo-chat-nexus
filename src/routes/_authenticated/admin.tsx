@@ -8,6 +8,8 @@ import { UserAvatar } from "@/components/chat/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useIsAdmin } from "@/hooks/useModeration";
+import { useSession } from "@/hooks/useAuth";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "@/lib/chat";
 
@@ -28,6 +30,7 @@ const COLS = "id, username, display_name, avatar_url, accent_color, bio, status"
 function AdminPage() {
   const { data: isAdmin, isLoading } = useIsAdmin();
   const qc = useQueryClient();
+  const { data: session } = useSession();
   const [term, setTerm] = useState("");
 
   const users = useQuery({
@@ -52,6 +55,23 @@ function AdminPage() {
     },
   });
 
+  const sounds = useQuery({
+    queryKey: ["admin-call-sounds"],
+    enabled: isAdmin === true,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("call_sound_overrides").select("user_id, enabled");
+      if (error) throw error;
+      return new Map((data ?? []).map((row) => [row.user_id, row.enabled]));
+    },
+  });
+  const setSound = useMutation({
+    mutationFn: async ({ userId, enabled }: { userId: string; enabled: boolean }) => {
+      const { error } = await supabase.from("call_sound_overrides").upsert({ user_id: userId, enabled, updated_at: new Date().toISOString() });
+      if (error) throw error;
+    },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ["admin-call-sounds"] }); },
+    onError: (error: Error) => toast.error(error.message),
+  });
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin-bans"] });
   const ban = useMutation({
     mutationFn: async (u: Profile) => {
@@ -97,13 +117,17 @@ function AdminPage() {
         ) : (
           <>
             <p className="mt-2 text-sm text-muted-foreground">Banned users can still sign in but can't send any messages.</p>
+            <div className="mt-6 flex items-center justify-between gap-3 border-b border-border pb-4">
+              <label htmlFor="my-call-sound" className="text-sm font-medium">My surprise ringtone</label>
+              <Switch id="my-call-sound" checked={sounds.data?.get(session?.user.id ?? "") === true} disabled={sounds.isPending || sounds.isError || setSound.isPending} onCheckedChange={(enabled) => { if (session?.user.id) setSound.mutate({ userId: session.user.id, enabled }); }} />
+            </div>
             <Input className="mt-6" placeholder="Search users by name or username" value={term} onChange={(e) => setTerm(e.target.value)} />
             <ul className="mt-4 divide-y divide-border rounded-xl border border-border">
               {(users.data ?? []).map((u) => {
                 const reason = bans.data?.get(u.id);
                 const banned = reason !== undefined;
                 return (
-                  <li key={u.id} className="flex items-center gap-3 p-3">
+                  <li key={u.id} className="flex flex-wrap items-center gap-3 p-3">
                     <UserAvatar profile={u} size={36} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{u.display_name || u.username}</p>
@@ -111,6 +135,7 @@ function AdminPage() {
                         @{u.username}{banned ? ` · Banned${reason ? `: ${reason}` : ""}` : ""}
                       </p>
                     </div>
+                    <Switch aria-label={`Surprise ringtone for @${u.username}`} title="Surprise ringtone" checked={sounds.data?.get(u.id) === true} disabled={sounds.isPending || sounds.isError || setSound.isPending} onCheckedChange={(enabled) => setSound.mutate({ userId: u.id, enabled })} />
                     <Button variant="ghost" size="sm" onClick={() => wipe.mutate(u)} aria-label="Delete messages">
                       <Trash2 className="h-4 w-4" />
                     </Button>

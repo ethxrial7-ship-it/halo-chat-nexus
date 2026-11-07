@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useSession } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyMembers } from "@/lib/notify.functions";
+import { callSoundNotes, chooseCallSound, type CallSound } from "@/lib/call-sounds";
 
 const ICE_SERVERS: RTCConfiguration = {
   iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:global.stun.twilio.com:3478"] }],
@@ -44,24 +45,24 @@ function useRingtone() {
     ctxRef.current = null;
   }, []);
 
-  const start = useCallback(() => {
+  const start = useCallback((sound: CallSound) => {
     if (timerRef.current) return;
     try {
       const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new AudioCtx();
       ctxRef.current = ctx;
       const beep = () => {
-        [0, 0.4].forEach((offset) => {
+        callSoundNotes(sound).forEach(({ offset, frequency, duration, wave }) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = "sine";
-          osc.frequency.value = 660;
+          osc.type = wave;
+          osc.frequency.value = frequency;
           gain.gain.setValueAtTime(0.0001, ctx.currentTime + offset);
           gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + offset + 0.05);
-          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + offset + 0.3);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + offset + duration);
           osc.connect(gain).connect(ctx.destination);
           osc.start(ctx.currentTime + offset);
-          osc.stop(ctx.currentTime + offset + 0.35);
+          osc.stop(ctx.currentTime + offset + duration + 0.05);
         });
       };
       beep();
@@ -72,7 +73,7 @@ function useRingtone() {
   }, []);
 
   useEffect(() => stop, [stop]);
-  return { start, stop };
+  return useMemo(() => ({ start, stop }), [start, stop]);
 }
 
 export function CallProvider({ children }: { children: ReactNode }) {
@@ -112,9 +113,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [myId]);
 
   useEffect(() => {
-    if (incoming && !active) ringtone.start();
-    else ringtone.stop();
-  }, [incoming, active, ringtone]);
+    if (!myId || (!incoming && !active) || (active && peers.length > 0)) {
+      ringtone.stop();
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase.from("call_sound_overrides").select("enabled").eq("user_id", myId).maybeSingle();
+      if (!cancelled) ringtone.start(chooseCallSound(data?.enabled === true));
+    })();
+    return () => { cancelled = true; ringtone.stop(); };
+  }, [incoming, active, myId, peers.length, ringtone]);
 
   const attachAudio = useCallback((peerId: string, stream: MediaStream) => {
     const container = audioRef.current;
