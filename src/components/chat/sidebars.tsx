@@ -102,6 +102,7 @@ export function ServerSidebar({ serverId, activeChannelId }: { serverId: string;
   const { data: session } = useSession();
   const userId = session?.user.id;
   const [open, setOpen] = useState(false);
+  const call = useCall();
   const servers = useQuery({ queryKey: qk.servers, queryFn: fetchMyServers });
   const channels = useQuery({ queryKey: qk.channels(serverId), queryFn: () => fetchChannels(serverId) });
   const members = useQuery({ queryKey: qk.serverMembers(serverId), queryFn: () => fetchServerMembers(serverId) });
@@ -137,7 +138,7 @@ export function ServerSidebar({ serverId, activeChannelId }: { serverId: string;
             ) : null
           }
         />
-        {channels.data?.map((channel) => (
+        {channels.data?.filter((c) => c.kind !== "voice").map((channel) => (
           <Link
             key={channel.id}
             to="/channels/$serverId/$channelId"
@@ -151,6 +152,26 @@ export function ServerSidebar({ serverId, activeChannelId }: { serverId: string;
             <span className="truncate">{channel.name}</span>
           </Link>
         ))}
+
+        <SectionHeader label="Voice channels" />
+        {channels.data?.filter((c) => c.kind === "voice").map((channel) => {
+          const connected = call.inCall(`voice:${channel.id}`);
+          return (
+            <button
+              key={channel.id}
+              type="button"
+              onClick={() => void call.joinRoom(channel.id, `🔊 ${channel.name} · ${server?.name ?? "Server"}`)}
+              className={cn(
+                "mx-2 flex w-[calc(100%-1rem)] items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                connected && "bg-sidebar-accent text-success",
+              )}
+            >
+              <Volume2 className="h-4 w-4 text-muted-foreground" />
+              <span className="truncate">{channel.name}</span>
+              {connected ? <span className="ml-auto text-[11px]">Connected</span> : null}
+            </button>
+          );
+        })}
 
         {server ? (
           <>
