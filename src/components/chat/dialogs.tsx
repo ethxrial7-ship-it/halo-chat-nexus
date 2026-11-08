@@ -146,6 +146,7 @@ export function CreateChannelDialog({
   serverId: string;
 }) {
   const [name, setName] = useState("");
+  const [kind, setKind] = useState<"text" | "voice">("text");
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -155,7 +156,7 @@ export function CreateChannelDialog({
       if (!clean) throw new Error("Pick a channel name");
       const { data, error } = await supabase
         .from("channels")
-        .insert({ server_id: serverId, name: clean.slice(0, 40) })
+        .insert({ server_id: serverId, name: clean.slice(0, 40), kind })
         .select("id")
         .single();
       if (error) throw error;
@@ -165,6 +166,7 @@ export function CreateChannelDialog({
       qc.invalidateQueries({ queryKey: qk.channels(serverId) });
       onOpenChange(false);
       setName("");
+      if (kind === "voice") return;
       navigate({ to: "/channels/$serverId/$channelId", params: { serverId, channelId } });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -177,6 +179,13 @@ export function CreateChannelDialog({
           <DialogTitle>Create a channel</DialogTitle>
           <DialogDescription>Channels keep conversations on topic.</DialogDescription>
         </DialogHeader>
+        <div className="grid grid-cols-2 gap-2">
+          {(["text", "voice"] as const).map((k) => (
+            <Button key={k} type="button" variant={kind === k ? "default" : "secondary"} onClick={() => setKind(k)}>
+              {k === "text" ? "# Text" : "🔊 Voice"}
+            </Button>
+          ))}
+        </div>
         <div className="space-y-2">
           <Label htmlFor="channel-name">Channel name</Label>
           <Input

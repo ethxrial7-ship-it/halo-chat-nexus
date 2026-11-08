@@ -24,6 +24,7 @@ export type Channel = {
   name: string;
   topic: string;
   position: number;
+  kind: "text" | "voice";
 };
 
 export type Message = {
@@ -89,7 +90,7 @@ export async function fetchMyServers(): Promise<Server[]> {
 export async function fetchChannels(serverId: string): Promise<Channel[]> {
   const { data, error } = await supabase
     .from("channels")
-    .select("id, server_id, name, topic, position")
+    .select("id, server_id, name, topic, position, kind")
     .eq("server_id", serverId)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true });

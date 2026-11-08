@@ -14,19 +14,21 @@ const ICE_SERVERS: RTCConfiguration = {
 };
 
 type IncomingCall = { conversationId: string; title: string; fromName: string };
-type ActiveCall = { conversationId: string; title: string };
+type ActiveCall = { conversationId: string; title: string; room?: boolean };
 type SharedScreen = { peerId: string; stream: MediaStream; local: boolean };
 
 type CallContextValue = {
   active: ActiveCall | null;
   startCall: (conversationId: string, title: string, memberIds: string[]) => Promise<void>;
   inCall: (conversationId: string) => boolean;
+  joinRoom: (channelId: string, title: string) => Promise<void>;
 };
 
 const CallContext = createContext<CallContextValue>({
   active: null,
   startCall: async () => {},
   inCall: () => false,
+  joinRoom: async () => {},
 });
 
 export function useCall() {
@@ -113,7 +115,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [myId]);
 
   useEffect(() => {
-    if (!myId || (!incoming && !active) || (active && peers.length > 0)) {
+    if (!myId || active?.room || (!incoming && !active) || (active && peers.length > 0)) {
       ringtone.stop();
       return;
     }
@@ -229,7 +231,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   );
 
   const connect = useCallback(
-    async (conversationId: string, title: string) => {
+    async (conversationId: string, title: string, room = false) => {
       if (!myId) return;
       try {
         streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -237,7 +239,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         toast.error("Microphone access is required for voice calls");
         return;
       }
-      setActive({ conversationId, title });
+      setActive({ conversationId, title, room });
 
       const channel = supabase.channel(`call:${conversationId}`, {
         config: { presence: { key: myId }, broadcast: { self: false } },
@@ -333,10 +335,20 @@ export function CallProvider({ children }: { children: ReactNode }) {
     [active, connect, myId, session?.user.email, teardown],
   );
 
+  const joinRoom = useCallback(
+    async (channelId: string, title: string) => {
+      const id = `voice:${channelId}`;
+      if (active?.conversationId === id) return;
+      if (active) teardown();
+      await connect(id, title, true);
+    },
+    [active, connect, teardown],
+  );
+
   const hangUp = useCallback(() => {
     const conversationId = active?.conversationId;
     teardown();
-    if (conversationId) toast("Call ended");
+    if (conversationId) toast(active?.room ? "Left voice channel" : "Call ended");
   }, [active, teardown]);
 
   const accept = useCallback(async () => {
@@ -427,8 +439,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       active,
       startCall,
       inCall: (conversationId: string) => active?.conversationId === conversationId,
+      joinRoom,
     }),
-    [active, startCall],
+    [active, startCall, joinRoom],
   );
 
   return (
@@ -469,7 +482,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{active.title}</p>
             <p className="text-xs text-muted-foreground">
-              {peers.length === 0 ? "Ringing…" : `${peers.length + 1} on the call`}
+              {peers.length === 0 ? (active.room ? "Voice connected · just you" : "Ringing…") : `${peers.length + 1} on the call`}
             </p>
           </div>
           <Button variant="ghost" size="icon" aria-label={muted ? "Unmute" : "Mute"} onClick={toggleMute}>

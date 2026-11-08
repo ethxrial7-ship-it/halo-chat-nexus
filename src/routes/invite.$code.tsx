@@ -48,7 +48,7 @@ function InvitePage() {
       sessionStorage.removeItem(PENDING_INVITE_KEY);
       await qc.invalidateQueries();
       const channels = await fetchChannels(serverId as string);
-      const first = channels[0];
+      const first = channels.find((c) => c.kind === "text");
       if (first) {
         navigate({
           to: "/channels/$serverId/$channelId",
