@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, Copy, Hash, Plus, Users } from "lucide-react";
+import { ChevronLeft, Copy, Hash, Plus, Users, Volume2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { CreateChannelDialog, NewChatDialog } from "@/components/chat/dialogs";
+import { useCall } from "@/components/chat/CallProvider";
 import { UserAvatar } from "@/components/chat/UserAvatar";
 import { useSession } from "@/hooks/useAuth";
 import {
