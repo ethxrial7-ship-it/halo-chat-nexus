@@ -28,7 +28,6 @@ export function CreateServerDialog({
   userId: string;
 }) {
   const [name, setName] = useState("");
-  const [kind, setKind] = useState<"text" | "voice">("text");
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -147,6 +146,7 @@ export function CreateChannelDialog({
   serverId: string;
 }) {
   const [name, setName] = useState("");
+  const [kind, setKind] = useState<"text" | "voice">("text");
   const qc = useQueryClient();
   const navigate = useNavigate();
 
